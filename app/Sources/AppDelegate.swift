@@ -43,6 +43,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
     var buttonCache: [UInt8: [UInt8]] = [:]
     var lastAutoLayout: String?
     var settingsDefaults: UserDefaults = .standard
+    var modifierPreferences = ModifierPreferences()
 
     // MARK: - Startup
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -53,6 +54,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         statusItem.menu = menu
         model.app = self
         migrateFromNagaControl()
+        do {
+            modifierPreferences = try loadModifierPreferences()
+            model.physicalModifierButtons = modifierPreferences.buttons
+        } catch {
+            model.errorText = "Could not load physical-modifier options; filtering is disabled: \(error.localizedDescription)"
+        }
         setupMainMenu()
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
         startHID()
@@ -90,6 +97,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
             (IOHIDDeviceGetProperty($0, kIOHIDProductIDKey as CFString) as? Int) == 0x00E7
         } ?? candidates.first
         if let cur = mouse, let device = cur.device, let p = preferred, CFEqual(device, p) { return }
+        model.stopModifierFiltering()
         mouse = nil
         openFailed = false
         lights = [:]
@@ -172,6 +180,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         }
         refreshBattery()
         menu.addItem(label("Razer Naga V3 Pro — \(m.connectionName)"))
+        if !modifierPreferences.buttons.isEmpty { menu.addItem(label(model.modifierStatus)) }
         guard let b = battery else {
             menu.addItem(label("Mouse asleep or out of range — move it to wake"))
             addFooter(menu); return
@@ -468,6 +477,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
     }
     func windowWillClose(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+    }
+    func applicationWillTerminate(_ notification: Notification) {
+        model.stopModifierFiltering(wait: true)
     }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         openWindow(); return true

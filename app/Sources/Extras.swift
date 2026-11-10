@@ -54,11 +54,9 @@ extension AppDelegate {
     }
 
     @objc func resetOtherButtons() {
-        guard let m = mouse else { return }
-        var failed = 0
-        for b in RazerMouse.otherButtons { if !m.setButton(b.factory) { failed += 1 } }
-        loadButtons()
-        if failed > 0 { message("\(failed) button(s) didn't reset", "Try again with the cable plugged in.") }
+        let ids = Set(RazerMouse.otherButtons.map(\.id))
+        model.applyButtonAssignments(RazerMouse.otherButtons.map(\.factory),
+                                     enabledButtons: modifierPreferences.buttons.subtracting(ids))
     }
 
     // MARK: Power
