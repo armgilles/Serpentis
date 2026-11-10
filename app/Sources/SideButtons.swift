@@ -207,12 +207,12 @@ extension AppDelegate {
 
     // MARK: Layouts
     func loadLayouts() -> [String: [[UInt8]]] {
-        guard let d = UserDefaults.standard.data(forKey: layoutsKey),
+        guard let d = settingsDefaults.data(forKey: layoutsKey),
               let l = try? JSONDecoder().decode([String: [[UInt8]]].self, from: d) else { return [:] }
         return l
     }
     func storeLayouts(_ l: [String: [[UInt8]]]) {
-        if let d = try? JSONEncoder().encode(l) { UserDefaults.standard.set(d, forKey: layoutsKey) }
+        if let d = try? JSONEncoder().encode(l) { settingsDefaults.set(d, forKey: layoutsKey) }
     }
 
     @objc func saveLayout() {

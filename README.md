@@ -73,6 +73,30 @@ Double-click **Uninstall Serpentis.command**. To put the mouse's buttons back to
 
 How it works is documented in [docs/PROTOCOL.md](docs/PROTOCOL.md).
 
+## Development and tests
+
+The installer compiles the application directly with `swiftc`; it does not use
+Swift Package Manager. Run the characterization tests from the repository root:
+
+```sh
+bash app/Tests/run.sh
+```
+
+The tests use only Apple's Command Line Tools, without XCTest, a full Xcode
+installation, or third-party dependencies. They compile the application sources
+without its launch entry point and run an isolated test executable. HID commands
+and delays use an injected transport, keyboard capture is called with unposted
+events, and persistence uses temporary, uniquely named defaults domains that are
+removed after each test. No mouse is required, no hardware settings are changed,
+and no keystrokes are sent to the user session.
+
+Coverage includes hardware assignment reads and writes, fixed shortcuts, factory
+restoration, reply verification and bounded retries, default detection, and legacy
+layout/profile persistence. These tests do not establish how the mouse firmware
+combines its keyboard reports with a separate physical keyboard; that still
+requires hardware observation. There is currently no software input-event engine
+in the application.
+
 ## Support the project
 
 Serpentis is free. If it saved you some frustration, you can [buy me a coffee on Ko-fi](https://ko-fi.com/darkside_dave) ☕

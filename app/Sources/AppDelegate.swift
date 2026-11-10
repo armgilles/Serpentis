@@ -42,6 +42,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
     var colorKind: EffectKind = .staticColor
     var buttonCache: [UInt8: [UInt8]] = [:]
     var lastAutoLayout: String?
+    var settingsDefaults: UserDefaults = .standard
 
     // MARK: - Startup
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -88,7 +89,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         let preferred = candidates.first {
             (IOHIDDeviceGetProperty($0, kIOHIDProductIDKey as CFString) as? Int) == 0x00E7
         } ?? candidates.first
-        if let cur = mouse, let p = preferred, CFEqual(cur.device, p) { return }
+        if let cur = mouse, let device = cur.device, let p = preferred, CFEqual(device, p) { return }
         mouse = nil
         openFailed = false
         lights = [:]
@@ -382,12 +383,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
     // MARK: - Profiles
     let profilesKey = "profiles"
     func loadProfiles() -> [String: Profile] {
-        guard let d = UserDefaults.standard.data(forKey: profilesKey),
+        guard let d = settingsDefaults.data(forKey: profilesKey),
               let p = try? JSONDecoder().decode([String: Profile].self, from: d) else { return [:] }
         return p
     }
     func storeProfiles(_ p: [String: Profile]) {
-        if let d = try? JSONEncoder().encode(p) { UserDefaults.standard.set(d, forKey: profilesKey) }
+        if let d = try? JSONEncoder().encode(p) { settingsDefaults.set(d, forKey: profilesKey) }
     }
 
     @objc func saveProfile() {
