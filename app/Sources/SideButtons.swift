@@ -112,8 +112,10 @@ extension AppDelegate {
         menu.addItem(.separator())
         for (i, id) in RazerMouse.sideButtonIDs.enumerated() {
             let cur = buttonCache[id]
-            let isDefault = cur.map { $0[3] == 0x02 && $0[5] == 0 && $0[6] == RazerMouse.defaultKeys[i] } ?? false
+            let dynamic = modifierPreferences.buttons.contains(id)
+            let isDefault = !dynamic && (cur.map { $0[3] == 0x02 && $0[5] == 0 && $0[6] == RazerMouse.defaultKeys[i] } ?? false)
             let sub = NSMenu()
+            if dynamic { sub.addItem(label("Physical keyboard modifiers enabled")) }
             sub.addItem(item("Default (\(hidKeyName(RazerMouse.defaultKeys[i])))", #selector(buttonDefault(_:)), tag: i, checked: isDefault))
             sub.addItem(item("Choose Key…", #selector(buttonChooseKey(_:)), tag: i, checked: !isDefault && cur?[3] == 0x02))
             let mm = NSMenu()
@@ -122,7 +124,7 @@ extension AppDelegate {
             }
             let mi = submenu("Mouse Button", mm); mi.state = cur?[3] == 0x01 ? .on : .off
             sub.addItem(mi)
-            menu.addItem(submenu("Button \(i + 1):   \(describeButton(cur))", sub))
+            menu.addItem(submenu("Button \(i + 1):   \(describeButton(cur))\(dynamic ? " + physical modifiers" : "")", sub))
         }
         menu.addItem(.separator())
         menu.addItem(item("Reset All to Default (1 – =)", #selector(resetAllButtons)))

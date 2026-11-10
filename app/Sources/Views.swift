@@ -191,6 +191,7 @@ struct ButtonEditor: View {
     @LocalState private var mods: UInt8 = 0
     @LocalState private var mouseButton: UInt8
     @LocalState private var preservePhysicalModifiers: Bool
+    @LocalState private var applyToMatchingButtons = false
 
     init(slot: ButtonSlot, current: [UInt8]?, isDefault: Bool, preservePhysicalModifiers: Bool) {
         self.slot = slot
@@ -248,6 +249,13 @@ struct ButtonEditor: View {
                             .font(.caption).foregroundStyle(.secondary)
                         Button("Grant Permissions…") { model.app?.requestModifierPermissions() }
                     }
+                    if let key = key, model.buttons.contains(where: {
+                        $0.key != slot.id && $0.value.count == 10 && $0.value[3] == 2 && $0.value[6] == key
+                    }) {
+                        Toggle("Apply the modifier option to all buttons emitting this key", isOn: $applyToMatchingButtons)
+                        Text("The mouse does not identify individual buttons when they emit the same key. Fixed modifiers must also match when enabling this option.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
                 }
                 HStack {
                     Button(preservePhysicalModifiers && mode == .key ? "Save and Enable Filter" : "Save to Mouse") { save() }
@@ -266,7 +274,8 @@ struct ButtonEditor: View {
         case .key:
             if let k = key {
                 model.setButton(RazerMouse.keyArgs(slot.id, mod: mods, key: k),
-                                preservePhysicalModifiers: preservePhysicalModifiers)
+                                preservePhysicalModifiers: preservePhysicalModifiers,
+                                applyToMatchingButtons: applyToMatchingButtons)
             }
         case .mouse: model.setButton(RazerMouse.mouseArgs(slot.id, button: mouseButton))
         }
@@ -286,7 +295,7 @@ struct LayoutsBox: View {
                         if !n.isEmpty { model.saveLayout(n); name = "" }
                     }.disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
                     Spacer()
-                    Button("Reset All Buttons to Default") { model.resetAllButtons() }
+                    Button("Reset / Restore All Buttons") { model.resetAllButtons() }
                 }
                 if model.layoutNames.isEmpty {
                     Text("No saved layouts yet.").foregroundStyle(.secondary)
@@ -353,7 +362,7 @@ struct ButtonsView: View {
                         Button("Retry Filter") { model.refresh() }
                     }
                 }
-                LayoutsBox()
+                LayoutsBox().disabled(model.busy > 0)
             }.padding(24)
         }
     }

@@ -43,7 +43,7 @@ enum PhysicalModifier: UInt32, CaseIterable {
     }
 }
 
-enum ModifierError: Error, LocalizedError {
+enum ModifierError: Error, LocalizedError, Equatable {
     case invalidAssignment(UInt8)
     case ambiguousKey(String)
     case permission
@@ -127,6 +127,7 @@ final class PhysicalModifierFilter {
 
     func process(_ event: CGEvent, type: CGEventType, senderID: UInt64?) throws {
         guard !configuration.keys.isEmpty else { return }
+        guard type == .keyDown || type == .keyUp || type == .flagsChanged else { return }
         guard event.getIntegerValueField(.eventSourceUnixProcessID) == 0 else { return }
         guard let senderID = senderID, senderID != 0 else { throw ModifierError.identification }
         guard targetSenderIDs.contains(senderID) else { return }

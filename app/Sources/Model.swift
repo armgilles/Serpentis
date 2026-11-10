@@ -59,6 +59,7 @@ final class SerpentisModel: ObservableObject {
     static func slot(_ id: UInt8) -> ButtonSlot { slots.first { $0.id == id } ?? slots[0] }
 
     func isDefault(_ s: ButtonSlot) -> Bool {
+        if physicalModifierButtons.contains(s.id) { return false }
         guard let cur = buttons[s.id] else { return true }
         if cur == s.factory { return true }
         // a side button set to its own default key (with either length byte) counts as default
@@ -66,12 +67,14 @@ final class SerpentisModel: ObservableObject {
     }
     func describe(_ s: ButtonSlot) -> String {
         guard buttons[s.id] != nil else { return "…" }
+        if physicalModifierButtons.contains(s.id) { return describeButton(buttons[s.id]) + " + physical modifiers" }
         return isDefault(s) && s.factoryKnown ? "Default (\(s.defaultText.lowercased()))" : describeButton(buttons[s.id])
     }
 
     // MARK: Refresh
     func refresh() {
         reloadNames()
+        guard busy == 0 else { return }
         guard let m = app?.mouse else {
             connected = false; asleep = false; battery = nil
             return
@@ -173,15 +176,25 @@ final class SerpentisModel: ObservableObject {
         modifierStatus = "Physical modifiers off"
     }
 
-    func setButton(_ args: [UInt8], preservePhysicalModifiers: Bool = false) {
+    func setButton(_ args: [UInt8], preservePhysicalModifiers: Bool = false, applyToMatchingButtons: Bool = false) {
         guard args.count == 10 else { errorText = "Invalid button assignment."; return }
         var enabled = physicalModifierButtons
-        if preservePhysicalModifiers { enabled.insert(args[1]) }
-        else { enabled.remove(args[1]) }
+        var ids: Set<UInt8> = [args[1]]
+        if applyToMatchingButtons, args[3] == 2 {
+            for (id, other) in buttons where other.count == 10 && other[3] == 2 && other[6] == args[6] {
+                ids.insert(id)
+            }
+        }
+        if preservePhysicalModifiers { enabled.formUnion(ids) }
+        else { enabled.subtract(ids) }
         applyButtonAssignments([args], enabledButtons: enabled)
     }
 
     func applyButtonAssignments(_ list: [[UInt8]], enabledButtons: Set<UInt8>, completion: (() -> Void)? = nil) {
+        guard busy == 0 else {
+            errorText = "Wait for the current mouse operation to finish before changing button assignments."
+            return
+        }
         guard let app = app, let mouse = app.mouse else { errorText = "The mouse isn't connected."; return }
         var next = buttons
         for args in list {
@@ -206,6 +219,8 @@ final class SerpentisModel: ObservableObject {
                     guard app.mouse === mouse else { return }
                     app.modifierPreferences.buttons = enabledButtons
                     app.persistModifierPreferences()
+                    self.modifierStatus = enabledButtons.isEmpty
+                        ? "Physical modifiers off" : "Physical-modifier filter active (hardware validation required)"
                     self.refresh()
                     completion?()
                 }

@@ -60,4 +60,29 @@ struct AssignmentTests {
             try expect(!model.isDefault(slot), slot.name)
         }
     }
+
+    func dynamicOptionsMarkTheAssignmentAsCustomizedWithoutChangingHardwareData() throws {
+        let model = SerpentisModel()
+        let slot = SerpentisModel.slots[0]
+        model.buttons[slot.id] = slot.factory
+        try expect(model.isDefault(slot))
+        model.physicalModifierButtons = [slot.id]
+        try expect(!model.isDefault(slot))
+        try expect(model.describe(slot).contains("physical modifiers"))
+        try expect(model.buttons[slot.id] == slot.factory)
+        model.physicalModifierButtons = []
+        try expect(model.isDefault(slot))
+    }
+
+    func capturedAssignmentsAreNotTreatedAsKnownFactoryDefaults() throws {
+        let captured = RazerMouse.keyArgs(0x50, mod: 1, key: 0x1E)
+        let slot = ButtonSlot(id: 0x50, name: "Detected", short: "50", factory: captured,
+                              defaultText: "Captured", factoryKnown: false)
+        let model = SerpentisModel()
+        model.buttons[slot.id] = captured
+        try expect(model.isDefault(slot))
+        model.buttons[slot.id] = RazerMouse.keyArgs(slot.id, mod: 0, key: 0x1E)
+        try expect(!model.isDefault(slot))
+        try expect(!model.describe(slot).contains("Default"))
+    }
 }
