@@ -44,6 +44,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
     var lastAutoLayout: String?
     var settingsDefaults: UserDefaults = .standard
     var modifierPreferences = ModifierPreferences()
+    var scrollTimer: Timer?
+    lazy var scrollController = ScrollDirectionController(defaults: settingsDefaults, onChange: { [weak self] state in
+        self?.model.scrollState = state
+        if let error = state.error { self?.model.errorText = error }
+    })
 
     // MARK: - Startup
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -62,6 +67,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         }
         setupMainMenu()
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
+        startScrollTracking()
         startHID()
         NSWorkspace.shared.notificationCenter.addObserver(self, selector: #selector(appActivated(_:)),
                                                           name: NSWorkspace.didActivateApplicationNotification, object: nil)
@@ -98,6 +104,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         } ?? candidates.first
         if let cur = mouse, let device = cur.device, let p = preferred, CFEqual(device, p) { return }
         model.stopModifierFiltering()
+        scrollController.disconnect()
         mouse = nil
         openFailed = false
         lights = [:]
@@ -107,6 +114,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         if let p = preferred {
             if let m = RazerMouse(device: p) {
                 mouse = m
+                identifyScrollDevice(m)
                 reloadLights()
                 loadButtons()
                 refreshBattery()
@@ -457,6 +465,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
 
     // MARK: - Window
     @objc func openWindow() {
+        scrollController.refreshSystem(force: true)
         if window == nil {
             let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 980, height: 720),
                              styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
@@ -479,6 +488,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate, NSWind
         NSApp.setActivationPolicy(.accessory)
     }
     func applicationWillTerminate(_ notification: Notification) {
+        stopScrollTracking()
         model.stopModifierFiltering(wait: true)
     }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {

@@ -247,7 +247,7 @@ struct ButtonEditor: View {
                     if preservePhysicalModifiers {
                         Text("Uses fixed modifiers plus held keyboard modifiers. Requires Serpentis to stay open, Input Monitoring and Accessibility.")
                             .font(.caption).foregroundStyle(.secondary)
-                        Button("Grant Permissions…") { model.app?.requestModifierPermissions() }
+                        Button("Grant Permissions…") { model.app?.requestInputPermissions() }
                     }
                     if let key = key, model.buttons.contains(where: {
                         $0.key != slot.id && $0.value.count == 10 && $0.value[3] == 2 && $0.value[6] == key
@@ -432,6 +432,7 @@ struct PerformanceView: View {
                         Text("How often the mouse reports its position. 1000 Hz is smoothest.").font(.caption).foregroundStyle(.secondary)
                     }.padding(10)
                 }
+                MouseScrollSettingsView()
             }.padding(24)
         }
         .onAppear { if !loaded { load(); loaded = true } }

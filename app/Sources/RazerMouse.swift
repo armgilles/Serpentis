@@ -61,6 +61,7 @@ struct RazerReportTransport {
                 var buffer = [UInt8](repeating: 0, count: 90)
                 var length = CFIndex(buffer.count)
                 guard IOHIDDeviceGetReport(device, kIOHIDReportTypeFeature, 0, &buffer, &length) == kIOReturnSuccess else { return nil }
+                guard length == buffer.count else { return nil }
                 return buffer
             },
             wait: { usleep($0) }
@@ -118,6 +119,13 @@ final class RazerMouse {
     }
 
     // MARK: - Info
+    func serial() -> String? {
+        guard let report = query(0x00, 0x82, size: 0x16) else { return nil }
+        let bytes = report[8..<30].prefix { $0 != 0 }
+        guard !bytes.isEmpty, bytes.allSatisfy({ (0x20...0x7E).contains($0) }) else { return nil }
+        return String(bytes: bytes, encoding: .ascii)
+    }
+
     func firmware() -> String? {
         guard let r = query(0x00, 0x81, size: 0x02) else { return nil }
         return "\(r[8]).\(String(format: "%02d", r[9]))"

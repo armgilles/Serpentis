@@ -4,7 +4,7 @@ import ApplicationServices
 extension AppDelegate {
     var modifierPreferencesKey: String { "physicalModifierPreferences" }
 
-    func requestModifierPermissions() {
+    func requestInputPermissions() {
         _ = CGRequestListenEventAccess()
         _ = AXIsProcessTrustedWithOptions([kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary)
     }

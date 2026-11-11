@@ -4,7 +4,7 @@ import Darwin
 import IOKit
 import IOKit.hid
 
-private struct EventOrigin {
+struct EventOrigin {
     typealias CopyEvent = @convention(c) (CGEvent) -> Unmanaged<CFTypeRef>?
     typealias Sender = @convention(c) (CFTypeRef) -> UInt64
     let copyEvent: CopyEvent
@@ -34,7 +34,7 @@ private func registryID(_ entry: io_registry_entry_t) -> UInt64? {
     return id
 }
 
-private func mouseSenderIDs(_ device: IOHIDDevice) throws -> Set<UInt64> {
+func mouseSenderIDs(_ device: IOHIDDevice) throws -> Set<UInt64> {
     var entry = IOHIDDeviceGetService(device)
     guard entry != 0 else { throw ModifierError.identification }
     IOObjectRetain(entry)
@@ -62,7 +62,7 @@ private func mouseSenderIDs(_ device: IOHIDDevice) throws -> Set<UInt64> {
     return ids
 }
 
-private final class ModifierTapSession {
+private final class ModifierTapSession: InputTapSession {
     let filter: PhysicalModifierFilter
     let targetIDs: Set<UInt64>
     let origin: EventOrigin
@@ -191,9 +191,7 @@ private final class ModifierTapSession {
 
 // Called only on the model's I/O queue. The session owns all input state on its run loop.
 final class ModifierEventTap {
-    private var loop: CFRunLoop?
-    private var thread: Thread?
-    private var stopped: DispatchSemaphore?
+    private let worker = EventTapThread()
     private var configuration: ModifierConfiguration?
     private var device: IOHIDDevice?
 
@@ -201,45 +199,15 @@ final class ModifierEventTap {
         if self.configuration == configuration, let current = self.device, CFEqual(current, device) { return }
         stop()
         guard !configuration.keys.isEmpty else { return }
-        let ready = DispatchSemaphore(value: 0)
-        let stopped = DispatchSemaphore(value: 0)
-        var result: Result<CFRunLoop, Error>?
-        let thread = Thread {
-            do {
-                let session = try ModifierTapSession(configuration: configuration, device: device, onError: onError)
-                do {
-                    try session.start()
-                    result = .success(CFRunLoopGetCurrent())
-                    ready.signal()
-                    CFRunLoopRun()
-                    session.stop()
-                } catch {
-                    session.stop()
-                    throw error
-                }
-            } catch {
-                result = .failure(error)
-                ready.signal()
-            }
-            stopped.signal()
+        try worker.start(name: "Serpentis physical modifiers") {
+            try ModifierTapSession(configuration: configuration, device: device, onError: onError)
         }
-        thread.name = "Serpentis physical modifiers"
-        thread.start()
-        ready.wait()
-        guard let result = result else { throw ModifierError.interception }
-        loop = try result.get()
-        self.thread = thread
-        self.stopped = stopped
         self.configuration = configuration
         self.device = device
     }
 
     func stop() {
-        if let loop = loop {
-            CFRunLoopPerformBlock(loop, CFRunLoopMode.commonModes.rawValue) { CFRunLoopStop(loop) }
-            CFRunLoopWakeUp(loop)
-            stopped?.wait()
-        }
-        loop = nil; thread = nil; stopped = nil; configuration = nil; device = nil
+        worker.stop()
+        configuration = nil; device = nil
     }
 }

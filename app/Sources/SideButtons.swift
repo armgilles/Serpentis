@@ -255,6 +255,7 @@ extension AppDelegate {
     }
 
     @objc func appActivated(_ note: Notification) {
+        scrollController.refreshSystem()
         guard mouse != nil, let wowLayout = UserDefaults.standard.string(forKey: autoWoWKey),
               let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
         if app.bundleIdentifier == Bundle.main.bundleIdentifier { return }
