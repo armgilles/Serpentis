@@ -4,6 +4,7 @@ let hardware = HardwareRemappingTests()
 let assignments = AssignmentTests()
 let persistence = PersistenceTests()
 let modifiers = PhysicalModifierTests()
+let scrolling = ScrollDirectionTests()
 let tests: [(String, () throws -> Void)] = [
     ("keyboard writes require an exact echo", hardware.keyboardAssignmentsRequireAnExactEcho),
     ("factory assignments can be restored", hardware.factoryAssignmentsCanBeRestored),
@@ -51,6 +52,30 @@ let tests: [(String, () throws -> Void)] = [
     ("mouse and scroll actions are not transformed", modifiers.mouseAndScrollActionsAreNotTransformed),
     ("dynamic options customize only software state", assignments.dynamicOptionsMarkTheAssignmentAsCustomizedWithoutChangingHardwareData),
     ("captured assignments are not known factory defaults", assignments.capturedAssignmentsAreNotTreatedAsKnownFactoryDefaults),
+    ("scrolling covers all system and desired directions", scrolling.allSystemAndDesiredDirections),
+    ("scroll delta representations invert exactly", scrolling.deltaRepresentationsAreInvertedExactly),
+    ("scrolling preserves horizontal axes and metadata", scrolling.horizontalAxesAndMetadataArePreserved),
+    ("other devices and unknown scroll origins are untouched", scrolling.otherDevicesAndUnknownOriginsAreUntouched),
+    ("synthetic scroll events are untouched", scrolling.syntheticScrollEventsAreUntouched),
+    ("scroll filtering preserves pointers clicks and keyboard actions", scrolling.pointerClicksAndKeyboardActionsAreUntouched),
+    ("horizontal tilt keeps its physical direction", scrolling.horizontalTiltKeepsItsPhysicalDirection),
+    ("keyboard tilt remaps keep modifier behavior", scrolling.keyboardTiltRemapsKeepTheirModifierBehavior),
+    ("unsafe deltas fail without partial changes", scrolling.unsafeDeltasFailWithoutPartialChanges),
+    ("system scroll preferences have explicit validation", scrolling.systemPreferenceHasAnExplicitDefaultAndRejectsInvalidValues),
+    ("firmware serial identifies a mouse across transports", scrolling.firmwareSerialIdentifiesTheMouseAcrossTransports),
+    ("invalid serial replies cannot create shared identities", scrolling.invalidSerialRepliesDoNotBecomeSharedDeviceIdentities),
+    ("scroll preferences survive restart and reconnect per mouse", scrolling.preferencesArePerMouseAndSurviveRestartAndReconnect),
+    ("scroll settings read system state before immediate updates", scrolling.settingsApplyImmediatelyAfterReadingTheSystemPreference),
+    ("disabled or disconnected scrolling ignores stale callbacks", scrolling.disableDisconnectAndStaleCallbacksCannotReactivateScrolling),
+    ("scroll permission and interruption failures are retriable", scrolling.permissionAndInterruptionFailuresAreVisibleAndRetriable),
+    ("system read failures stop scrolling without an invented direction", scrolling.systemReadFailuresStopFilteringWithoutAnInventedDirection),
+    ("corrupt scroll preferences are not overwritten", scrolling.corruptPreferencesAreNotOverwrittenByDefaults),
+    ("missing scroll identity cannot configure another device", scrolling.missingIdentityCannotConfigureAnyOtherDevice),
+    ("profiles and layouts leave scroll settings alone", scrolling.legacyProfilesAndLayoutChangesLeaveScrollSettingsAlone),
+    ("foreground and system notifications refresh scrolling first", scrolling.foregroundAndSystemNotificationsReadBeforeUpdatingConfiguration),
+    ("live scroll driver rejects missing devices without capture", scrolling.liveDriverRejectsMissingDeviceWithoutCapturingInput),
+    ("stale identity reads cannot attach a replaced mouse", scrolling.staleIdentityReadsCannotAttachAReplacedMouse),
+    ("shared tap worker stops and restarts after failure", scrolling.sharedTapWorkerStopsAndCanRestartAfterFailure),
 ]
 
 var failures = 0

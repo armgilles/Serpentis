@@ -34,6 +34,7 @@ final class SerpentisModel: ObservableObject {
     @Published var physicalModifierButtons: Set<UInt8> = []
     @Published var modifierStatus = "Physical modifiers off"
     @Published var detectedButtons: [ButtonSlot] = []
+    @Published var scrollState = ScrollState()
 
     private let queue = DispatchQueue(label: "serpentis.io")
     private var pendingLight: DispatchWorkItem?
@@ -137,6 +138,22 @@ final class SerpentisModel: ObservableObject {
     func reloadNames() {
         layoutNames = (app?.loadLayouts().keys.sorted()) ?? []
         profileNames = (app?.loadProfiles().keys.sorted()) ?? []
+    }
+
+    func identifyScrollDevice(_ mouse: RazerMouse, completion: @escaping (String?) -> Void) {
+        queue.async {
+            let serial = mouse.serial()
+            let identifier: String?
+            if let serial = serial {
+                do { identifier = try scrollDeviceIdentifier(serial: serial) }
+                catch { identifier = nil }
+            } else { identifier = nil }
+            DispatchQueue.main.async {
+                guard self.app?.mouse === mouse else { return }
+                completion(identifier)
+                self.refresh()
+            }
+        }
     }
 
     /// Runs a mouse operation in the background, then refreshes everything.

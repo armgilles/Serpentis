@@ -7,8 +7,8 @@ final class ReportRecorder {
     var sendSucceeds = true
     private(set) var reads = 0
 
-    func mouse() -> RazerMouse {
-        RazerMouse(productID: 0x00E7, transport: RazerReportTransport(
+    func mouse(productID: Int = 0x00E7) -> RazerMouse {
+        RazerMouse(productID: productID, transport: RazerReportTransport(
             send: { [self] in sent.append($0); return sendSucceeds },
             receive: { [self] in
                 reads += 1
@@ -18,10 +18,10 @@ final class ReportRecorder {
         ))
     }
 
-    static func reply(status: UInt8 = 0x02, command: UInt8 = 0x0C, args: [UInt8]) -> [UInt8] {
+    static func reply(status: UInt8 = 0x02, reportClass: UInt8 = 0x02, command: UInt8 = 0x0C, args: [UInt8]) -> [UInt8] {
         var report = [UInt8](repeating: 0, count: 90)
         report[0] = status
-        report[6] = 0x02
+        report[6] = reportClass
         report[7] = command
         report.replaceSubrange(8..<(8 + args.count), with: args)
         return report
