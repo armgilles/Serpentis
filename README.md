@@ -159,6 +159,12 @@ Swift Package Manager. Run the characterization tests from the repository root:
 bash app/Tests/run.sh
 ```
 
+The [CI workflow](.github/workflows/ci.yml) runs the same tests on a hosted macOS
+runner for every push and pull request targeting `main`. It also builds the
+optimized application with a macOS 13 deployment target. No connected mouse,
+input permissions or signing credentials are required. Passing CI does not
+replace the live hardware checks described below.
+
 The tests use only Apple's Command Line Tools, without XCTest, a full Xcode
 installation, or third-party dependencies. They compile the application sources
 without its launch entry point and run an isolated test executable. HID commands
